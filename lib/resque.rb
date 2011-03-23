@@ -147,10 +147,11 @@ module Resque
   # passed with all queues remaining empty.
   def bpop(queues, timeout)
     args = queues.map { |q| "queue:#{q}" }
+    args << "queues" # Also subscribe to changes in queues list
     args << timeout
 
     queue, raw_payload = redis.blpop(*args)
-    queue ? [queue.split(":").last, decode(raw_payload)] : nil
+    queue ? (queue == "queues" ? nil :  [queue.split(":").last, decode(raw_payload)]) : nil
   end
 
   # Returns an integer representing the size of a queue.
