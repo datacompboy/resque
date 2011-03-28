@@ -147,8 +147,15 @@ module Resque
   # passed with all queues remaining empty.
   def bpop(queues, timeout)
     args = queues.map { |q| "queue:#{q}" }
-    args << "queues" # Also subscribe to changes in queues list
-    args << timeout
+    if (args.length == 0)
+      # If no queues currently known, subscribe to something just for timeout
+      args << "queue:"
+      # Do not allow zero timeout in that case -- or we hang forever
+      args << (timeout ? timeout : 10)
+    else
+      # Yes, we CAN hang forever there if timeout=0 and no new messages posted into known queues
+      args << timeout
+    end
 
     queue, raw_payload = redis.blpop(*args)
     queue ? (queue == "queues" ? nil :  [queue.split(":").last, decode(raw_payload)]) : nil
